@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const Data = require("../models/models");
 
 const router = express.Router();
+let count = 0;
 
 // Add API endpoint to fetch all data
 router.get("/getAll", async (req, res) => {
@@ -16,22 +17,36 @@ router.get("/getAll", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
-
 router.post("/add", async (req, res) => {
   try {
     const { data } = req.body;
 
-    // Clear existing data
-    await Data.deleteMany({});
+    // Find the existing document
+    let existingData = await Data.findOne({});
+    let count_add = 1;
 
-    const newData = new Data({
-      data: [data],
-      count_add: 1,
-      count_update: 1,
-    });
-
-    // Save the new document to the database
-    await newData.save();
+    if (existingData) {
+      // If the document exists, update count_add by incrementing it
+      count_add = existingData.count_add + 1;
+      await Data.updateOne(
+        {},
+        {
+          $set: {
+            data: [data],
+            count_add: count_add,
+            count_update: 1,
+          },
+        }
+      );
+    } else {
+      // If the document does not exist, create a new one
+      const newData = new Data({
+        data: [data],
+        count_add: count_add,
+        count_update: 1,
+      });
+      await newData.save();
+    }
 
     res.status(200).json({ message: "Data added successfully" });
   } catch (error) {
